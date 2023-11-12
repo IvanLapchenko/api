@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import jwt
 import sqlite3
 from flask_cors import CORS
 app = Flask(__name__)
@@ -8,9 +9,9 @@ def create_table():
     conn = sqlite3.connect('tasks.db')
     cursor = conn.cursor()
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tasks (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
-            title TEXT NOT NULL
+            name TEXT NOT NULL
         )
     ''')
     conn.commit()
@@ -40,6 +41,31 @@ def tasks():
         conn.close()
 
         return jsonify({'message': 'Task created successfully'})
+
+
+@app.route('/reg', methods=['POST'])
+def reg():
+    data = request.get_json()
+    name = data['name']
+
+    conn = sqlite3.connect('tasks.db')
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO users (name) VALUES (?)', (name,))
+    conn.commit()
+    conn.close()
+
+    token = jwt.encode({'username': name}, 'secret', algorithm='HS256')  
+
+    return jsonify({'message': 'success', 'token': token})
+
+
+@app.route('/dummy', methods=['POST'])
+def dummmy():
+    token = request.get_json().get('token')
+    decoded = jwt.decode(token, options={"verify_signature": False})
+    print(decoded)
+    return jsonify({'test': 'test'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
